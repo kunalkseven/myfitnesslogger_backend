@@ -1,0 +1,101 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plans     WorkoutPlan[]
+  sessions  WorkoutSession[]
+}
+
+model Exercise {
+  id                 String   @id @default(uuid())
+  name               String
+  primaryMuscleGroup String
+  isCustom           Boolean  @default(false)
+  userId             String?
+  createdAt          DateTime @default(now())
+
+  sets               WorkoutSet[]
+  planExercises      PlanExercise[]
+}
+
+model WorkoutPlan {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+  days      PlanDay[]
+  sessions  WorkoutSession[]
+}
+
+model PlanDay {
+  id        String   @id @default(uuid())
+  planId    String
+  name      String
+  order     Int
+  createdAt DateTime @default(now())
+
+  plan      WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exercises PlanExercise[]
+  sessions  WorkoutSession[]
+}
+
+model PlanExercise {
+  id         String   @id @default(uuid())
+  planDayId  String
+  exerciseId String
+  order      Int
+  targetSets Int
+  targetReps Int?
+
+  planDay    PlanDay  @relation(fields: [planDayId], references: [id], onDelete: Cascade)
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+model WorkoutSession {
+  id          String    @id @default(uuid())
+  userId      String
+  planId      String?
+  planDayId   String?
+  date        String
+  startTime   DateTime?
+  endTime     DateTime?
+  status      String    @default("completed") // "planned" | "completed"
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  user        User         @relation(fields: [userId], references: [id])
+  plan        WorkoutPlan? @relation(fields: [planId], references: [id])
+  planDay     PlanDay?     @relation(fields: [planDayId], references: [id])
+  sets        WorkoutSet[]
+}
+
+model WorkoutSet {
+  id           String   @id @default(uuid())
+  sessionId    String
+  exerciseId   String
+  orderIndex   Int
+  weight       Float    @default(0)
+  reps         Int      @default(0)
+  rpe          Float?
+  side         String   @default("both")
+  isWarmup     Boolean  @default(false)
+  isCompleted  Boolean  @default(true)
+  timestamp    DateTime @default(now())
+
+  session      WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise     Exercise       @relation(fields: [exerciseId], references: [id])
+}
